@@ -1,0 +1,41 @@
+{
+  "versao_modelo": "1.0.0",
+  "treinado_em": "2026-10-23T22:30:29+00:00",
+  "n_clientes": 10000,
+  "taxa_churn": 0.2461,
+  "comparacao_cv": {
+    "regressao_logistica": {
+      "roc_auc_cv": 0.8071,
+      "pr_auc_cv": 0.5759
+    },
+    "gradient_boosting": {
+      "roc_auc_cv": 0.7996,
+      "pr_auc_cv": 0.5598
+    }
+  },
+  "modelo_escolhido": "regressao_logistica",
+  "limiar_decisao": 0.48,
+  "teste": {
+    "roc_auc": 0.811,
+    "pr_auc": 0.5687,
+    "brier": 0.1824,
+    "precisao": 0.4459,
+    "recall": 0.8049,
+    "clientes_abordados_pct": 0.444,
+    "lucro_campanha_modelo": 61550.21,
+    "lucro_campanha_todos": 26258.19
+  },
+  "importancia_permutacao": {
+    "tipo_contrato": 0.1039,
+    "tempo_cliente_meses": 0.0622,
+    "valor_mensal": 0.0241,
+    "chamados_suporte_90d": 0.0226,
+    "tem_fidelidade_movel": 0.0194,
+    "forma_pagamento": 0.0134,
+    "internet": 0.0046,
+    "atrasos_pagamento_12m": 0.0035,
+    "idade": 0.0028,
+    "tem_streaming": -0.0001,
+    "regiao": -0.0005
+  }
+}
