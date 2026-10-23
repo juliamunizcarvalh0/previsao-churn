@@ -1,6 +1,6 @@
 # Previsão de Churn com Otimização por Lucro
 
-![CI](../../actions/workflows/ci.yml/badge.svg)
+[![CI](https://github.com/juliamunizcarvalh0/previsao-churn/actions/workflows/ci.yml/badge.svg)](https://github.com/juliamunizcarvalh0/previsao-churn/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/python-3.11%2B-blue)
 ![scikit-learn](https://img.shields.io/badge/scikit--learn-ML-orange)
 ![FastAPI](https://img.shields.io/badge/FastAPI-API-009688)
@@ -44,7 +44,7 @@ O tipo de contrato e o tempo de casa são os fatores mais fortes. Região e stre
 ## Como rodar
 
 ```bash
-git clone <url-deste-repositorio>
+git clone https://github.com/juliamunizcarvalh0/previsao-churn.git
 cd previsao-churn
 python -m venv .venv && source .venv/bin/activate
 make install   # dependências
