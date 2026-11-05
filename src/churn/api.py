@@ -24,18 +24,37 @@ MODEL_PATH = Path(
 )
 
 
+YesNo = Literal["Yes", "No"]
+InternetDependent = Literal["Yes", "No", "No internet service"]
+
+
 class Customer(BaseModel):
-    idade: int = Field(ge=18, le=100, examples=[34])
-    tempo_cliente_meses: int = Field(ge=0, le=600, examples=[5])
-    valor_mensal: float = Field(gt=0, examples=[154.8])
-    chamados_suporte_90d: int = Field(ge=0, examples=[3])
-    atrasos_pagamento_12m: int = Field(ge=0, examples=[2])
-    tipo_contrato: Literal["mensal", "anual", "bianual"]
-    forma_pagamento: Literal["boleto", "cartao_credito", "pix", "debito_automatico"]
-    internet: Literal["fibra", "dsl", "nenhuma"]
-    regiao: Literal["norte", "nordeste", "centro_oeste", "sudeste", "sul"]
-    tem_streaming: bool
-    tem_fidelidade_movel: bool
+    """Cliente no mesmo formato do dataset IBM Telco Customer Churn."""
+
+    gender: Literal["Female", "Male"]
+    SeniorCitizen: int = Field(ge=0, le=1, examples=[0])
+    Partner: YesNo
+    Dependents: YesNo
+    tenure: int = Field(ge=0, le=600, examples=[2], description="meses como cliente")
+    PhoneService: YesNo
+    MultipleLines: Literal["Yes", "No", "No phone service"]
+    InternetService: Literal["DSL", "Fiber optic", "No"]
+    OnlineSecurity: InternetDependent
+    OnlineBackup: InternetDependent
+    DeviceProtection: InternetDependent
+    TechSupport: InternetDependent
+    StreamingTV: InternetDependent
+    StreamingMovies: InternetDependent
+    Contract: Literal["Month-to-month", "One year", "Two year"]
+    PaperlessBilling: YesNo
+    PaymentMethod: Literal[
+        "Electronic check",
+        "Mailed check",
+        "Bank transfer (automatic)",
+        "Credit card (automatic)",
+    ]
+    MonthlyCharges: float = Field(gt=0, examples=[95.5])
+    TotalCharges: float = Field(ge=0, examples=[191.0])
 
 
 class Prediction(BaseModel):
@@ -59,7 +78,8 @@ def load_model() -> dict:
 
 app = FastAPI(
     title="API de Previsão de Churn",
-    description="Estima a probabilidade de um cliente cancelar o serviço.",
+    description="Estima a probabilidade de um cliente cancelar o serviço. "
+    "Modelo treinado no dataset público IBM Telco Customer Churn.",
     version=__version__,
 )
 
@@ -69,8 +89,7 @@ def _predict(customers: list[Customer]) -> list[Prediction]:
         bundle = load_model()
     except FileNotFoundError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
-    records = [{**c.model_dump(), "tem_streaming": int(c.tem_streaming),
-                "tem_fidelidade_movel": int(c.tem_fidelidade_movel)} for c in customers]
+    records = [c.model_dump() for c in customers]
     proba = bundle["pipeline"].predict_proba(to_frame(records)[bundle["features"]])[:, 1]
     return [
         Prediction(

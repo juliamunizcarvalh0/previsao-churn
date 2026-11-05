@@ -1,41 +1,50 @@
 {
-  "versao_modelo": "1.0.0",
-  "treinado_em": "2026-10-23T22:30:29+00:00",
-  "n_clientes": 10000,
-  "taxa_churn": 0.2461,
+  "versao_modelo": "2.0.0",
+  "treinado_em": "2026-11-05T17:37:55+00:00",
+  "dataset": "IBM Telco Customer Churn",
+  "n_clientes": 7043,
+  "taxa_churn": 0.2654,
   "comparacao_cv": {
     "regressao_logistica": {
-      "roc_auc_cv": 0.8071,
-      "pr_auc_cv": 0.5759
+      "roc_auc_cv": 0.8455,
+      "pr_auc_cv": 0.6569
     },
     "gradient_boosting": {
-      "roc_auc_cv": 0.7996,
-      "pr_auc_cv": 0.5598
+      "roc_auc_cv": 0.8467,
+      "pr_auc_cv": 0.6586
     }
   },
   "modelo_escolhido": "regressao_logistica",
-  "limiar_decisao": 0.48,
+  "limiar_decisao": 0.6,
   "teste": {
-    "roc_auc": 0.811,
-    "pr_auc": 0.5687,
-    "brier": 0.1824,
-    "precisao": 0.4459,
-    "recall": 0.8049,
-    "clientes_abordados_pct": 0.444,
-    "lucro_campanha_modelo": 61550.21,
-    "lucro_campanha_todos": 26258.19
+    "roc_auc": 0.8416,
+    "pr_auc": 0.6326,
+    "brier": 0.1687,
+    "precisao": 0.5399,
+    "recall": 0.7059,
+    "clientes_abordados_pct": 0.3471,
+    "lucro_campanha_modelo": 18301.38,
+    "lucro_campanha_todos": -13298.71
   },
   "importancia_permutacao": {
-    "tipo_contrato": 0.1039,
-    "tempo_cliente_meses": 0.0622,
-    "valor_mensal": 0.0241,
-    "chamados_suporte_90d": 0.0226,
-    "tem_fidelidade_movel": 0.0194,
-    "forma_pagamento": 0.0134,
-    "internet": 0.0046,
-    "atrasos_pagamento_12m": 0.0035,
-    "idade": 0.0028,
-    "tem_streaming": -0.0001,
-    "regiao": -0.0005
+    "tenure": 0.1578,
+    "InternetService": 0.0443,
+    "MonthlyCharges": 0.0389,
+    "Contract": 0.0377,
+    "TotalCharges": 0.0118,
+    "StreamingMovies": 0.0049,
+    "OnlineSecurity": 0.0043,
+    "StreamingTV": 0.0041,
+    "TechSupport": 0.004,
+    "PaymentMethod": 0.0034,
+    "MultipleLines": 0.0027,
+    "OnlineBackup": 0.0019,
+    "DeviceProtection": 0.0017,
+    "PaperlessBilling": 0.0013,
+    "SeniorCitizen": 0.001,
+    "Dependents": 0.0009,
+    "Partner": 0.0001,
+    "PhoneService": -0.0,
+    "gender": -0.0
   }
 }

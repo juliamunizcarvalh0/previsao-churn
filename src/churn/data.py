@@ -1,107 +1,74 @@
-"""Geração de um dataset sintético e realista de clientes de uma operadora.
+"""Carga e limpeza do dataset público IBM Telco Customer Churn.
 
-Os dados são sintéticos para que o projeto rode em qualquer máquina sem
-download. As relações entre as variáveis imitam padrões conhecidos do setor:
-contratos mensais, muitos chamados no suporte e pagamento por boleto aumentam
-a chance de cancelamento; clientes antigos e com contrato longo cancelam menos.
+O arquivo ``data/Telco-Customer-Churn.csv`` vem do repositório oficial da IBM
+(https://github.com/IBM/telco-customer-churn-on-icp4d, licença Apache 2.0) e é
+o mesmo dataset publicado no Kaggle como "Telco Customer Churn". São 7.043
+clientes de uma operadora de telecom, com 26,5% de cancelamento.
+
+Os nomes das colunas foram mantidos como no original para que o código rode
+igual no Kaggle, no GitHub e na API.
 """
 
 from __future__ import annotations
 
-import numpy as np
+from pathlib import Path
+
 import pandas as pd
 
-CONTRACT_TYPES = ["mensal", "anual", "bianual"]
-PAYMENT_METHODS = ["boleto", "cartao_credito", "pix", "debito_automatico"]
-INTERNET_TYPES = ["fibra", "dsl", "nenhuma"]
-REGIONS = ["norte", "nordeste", "centro_oeste", "sudeste", "sul"]
+ROOT = Path(__file__).resolve().parents[2]
+DATA_PATH = ROOT / "data" / "Telco-Customer-Churn.csv"
+SOURCE_URL = (
+    "https://raw.githubusercontent.com/IBM/telco-customer-churn-on-icp4d/"
+    "master/data/Telco-Customer-Churn.csv"
+)
 
-NUMERIC_FEATURES = [
-    "idade",
-    "tempo_cliente_meses",
-    "valor_mensal",
-    "chamados_suporte_90d",
-    "atrasos_pagamento_12m",
+NUMERIC_FEATURES = ["tenure", "MonthlyCharges", "TotalCharges"]
+BINARY_FEATURES = ["SeniorCitizen"]
+CATEGORICAL_FEATURES = [
+    "gender",
+    "Partner",
+    "Dependents",
+    "PhoneService",
+    "MultipleLines",
+    "InternetService",
+    "OnlineSecurity",
+    "OnlineBackup",
+    "DeviceProtection",
+    "TechSupport",
+    "StreamingTV",
+    "StreamingMovies",
+    "Contract",
+    "PaperlessBilling",
+    "PaymentMethod",
 ]
-CATEGORICAL_FEATURES = ["tipo_contrato", "forma_pagamento", "internet", "regiao"]
-BINARY_FEATURES = ["tem_streaming", "tem_fidelidade_movel"]
 FEATURES = NUMERIC_FEATURES + CATEGORICAL_FEATURES + BINARY_FEATURES
-TARGET = "churn"
+TARGET = "Churn"
+ID = "customerID"
 
 
-def generate_customers(n: int = 10_000, seed: int = 42) -> pd.DataFrame:
-    """Gera ``n`` clientes sintéticos com a coluna alvo ``churn`` (0/1)."""
-    rng = np.random.default_rng(seed)
+def clean(raw: pd.DataFrame) -> pd.DataFrame:
+    """Corrige os tipos do CSV original.
 
-    contract = rng.choice(CONTRACT_TYPES, size=n, p=[0.55, 0.30, 0.15])
-    payment = rng.choice(PAYMENT_METHODS, size=n, p=[0.25, 0.30, 0.25, 0.20])
-    internet = rng.choice(INTERNET_TYPES, size=n, p=[0.50, 0.35, 0.15])
-    region = rng.choice(REGIONS, size=n, p=[0.08, 0.27, 0.08, 0.42, 0.15])
+    ``TotalCharges`` vem como texto e fica em branco para os 11 clientes com
+    ``tenure == 0``: eles ainda não pagaram nenhuma fatura, então o total é 0.
+    """
+    df = raw.copy()
+    total = pd.to_numeric(df["TotalCharges"].astype(str).str.strip(), errors="coerce")
+    df["TotalCharges"] = total.fillna(0.0).astype(float)
+    df["SeniorCitizen"] = df["SeniorCitizen"].astype(int)
+    df[TARGET] = (df[TARGET].astype(str) == "Yes").astype(int)
+    for col in CATEGORICAL_FEATURES:
+        df[col] = df[col].astype(str)
+    return df[[ID, *FEATURES, TARGET]]
 
-    age = rng.normal(40, 13, n).clip(18, 85).round().astype(int)
 
-    # Contratos longos tendem a pertencer a clientes mais antigos.
-    tenure_scale = np.select(
-        [contract == "mensal", contract == "anual"], [14, 30], default=45
-    )
-    tenure = rng.exponential(tenure_scale).clip(1, 96).round().astype(int)
-
-    streaming = rng.binomial(1, 0.45, n)
-    mobile_bundle = rng.binomial(1, 0.30, n)
-
-    base_price = np.select(
-        [internet == "fibra", internet == "dsl"], [119.9, 79.9], default=49.9
-    )
-    monthly = (
-        base_price + streaming * 34.9 + rng.normal(0, 12, n)
-    ).clip(29.9, 299.9).round(2)
-
-    support_calls = rng.poisson(np.where(internet == "fibra", 1.2, 0.8), n)
-    late_payments = rng.poisson(np.where(payment == "boleto", 1.0, 0.35), n)
-
-    logit = (
-        -2.2
-        + 1.30 * (contract == "mensal")
-        - 0.90 * (contract == "bianual")
-        - 0.035 * tenure
-        + 0.012 * (monthly - 100)
-        + 0.38 * support_calls
-        + 0.30 * late_payments
-        + 0.45 * (payment == "boleto")
-        - 0.35 * (payment == "debito_automatico")
-        + 0.35 * (internet == "fibra")
-        - 0.55 * mobile_bundle
-        - 0.008 * (age - 40)
-        + rng.normal(0, 0.35, n)  # ruído não observável
-    )
-    churn = rng.binomial(1, 1 / (1 + np.exp(-logit)))
-
-    df = pd.DataFrame(
-        {
-            "cliente_id": [f"CLI{i:06d}" for i in range(n)],
-            "idade": age,
-            "tempo_cliente_meses": tenure,
-            "valor_mensal": monthly,
-            "chamados_suporte_90d": support_calls,
-            "atrasos_pagamento_12m": late_payments,
-            "tipo_contrato": contract,
-            "forma_pagamento": payment,
-            "internet": internet,
-            "regiao": region,
-            "tem_streaming": streaming,
-            "tem_fidelidade_movel": mobile_bundle,
-            TARGET: churn,
-        }
-    )
-    return df
+def load_telco(path: Path | str | None = None) -> pd.DataFrame:
+    """Lê o CSV (local ou, se não existir, do repositório da IBM) já limpo."""
+    path = Path(path) if path else DATA_PATH
+    source = path if path.exists() else SOURCE_URL
+    return clean(pd.read_csv(source))
 
 
 if __name__ == "__main__":
-    from pathlib import Path
-
-    out = Path("data")
-    out.mkdir(exist_ok=True)
-    data = generate_customers()
-    data.to_csv(out / "clientes.csv", index=False)
-    print(f"{len(data)} clientes salvos em data/clientes.csv "
-          f"(taxa de churn: {data[TARGET].mean():.1%})")
+    data = load_telco()
+    print(f"{len(data)} clientes | taxa de churn: {data[TARGET].mean():.1%}")

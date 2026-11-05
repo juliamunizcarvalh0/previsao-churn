@@ -7,6 +7,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY src ./src
+COPY data ./data
 # O modelo é treinado durante o build, então a imagem já sobe pronta.
 RUN python -m churn.train
 

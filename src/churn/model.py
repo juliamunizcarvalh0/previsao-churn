@@ -12,9 +12,9 @@ from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 from .data import BINARY_FEATURES, CATEGORICAL_FEATURES, NUMERIC_FEATURES
 
-# Premissas de negócio (ajustáveis): oferecer um desconto de retenção custa
-# R$ 50 por cliente abordado; perder um cliente custa, em média, 6 meses de
-# receita. A oferta convence 35% dos clientes que iriam cancelar.
+# Premissas de negócio (ajustáveis). O dataset está em dólares: oferecer um
+# desconto de retenção custa US$ 50 por cliente abordado; perder um cliente
+# custa, em média, 6 meses de receita. A oferta convence 35% de quem iria sair.
 RETENTION_OFFER_COST = 50.0
 LOST_CUSTOMER_MONTHS = 6
 OFFER_SUCCESS_RATE = 0.35
@@ -37,7 +37,7 @@ def candidate_models(seed: int = 42) -> dict[str, Pipeline]:
         "regressao_logistica": Pipeline(
             [
                 ("prep", _preprocessor(scale_numeric=True)),
-                ("clf", LogisticRegression(max_iter=1000, class_weight="balanced")),
+                ("clf", LogisticRegression(max_iter=2000, class_weight="balanced")),
             ]
         ),
         "gradient_boosting": Pipeline(

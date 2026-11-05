@@ -1,8 +1,8 @@
 """Treina, compara e avalia os modelos; salva o melhor em ``models/``.
 
 Uso:
-    python -m churn.train            # gera dados, treina e salva
-    python -m churn.train --n 2000   # versão rápida
+    python -m churn.train                      # dataset IBM Telco em data/
+    python -m churn.train --data outro.csv     # mesmo formato, outro arquivo
 """
 
 from __future__ import annotations
@@ -27,14 +27,22 @@ from sklearn.metrics import (
 from sklearn.model_selection import StratifiedKFold, cross_val_predict, train_test_split
 
 from . import __version__
-from .data import FEATURES, TARGET, generate_customers
+from .data import FEATURES, TARGET, load_telco
 from .model import best_threshold, candidate_models, expected_profit
 
 ROOT = Path(__file__).resolve().parents[2]
+MIN_AUC_GAIN = 0.005
 
 
-def train(n: int = 10_000, seed: int = 42, out_dir: Path = ROOT) -> dict:
-    df = generate_customers(n=n, seed=seed)
+def train(
+    data_path: Path | str | None = None,
+    seed: int = 42,
+    out_dir: Path = ROOT,
+    sample: int | None = None,
+) -> dict:
+    df = load_telco(data_path)
+    if sample:
+        df = df.sample(n=sample, random_state=seed)
     X, y = df[FEATURES], df[TARGET].to_numpy()
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.2, stratify=y, random_state=seed
@@ -52,14 +60,20 @@ def train(n: int = 10_000, seed: int = 42, out_dir: Path = ROOT) -> dict:
         }
         print(f"{name:22s} ROC-AUC (CV) = {comparison[name]['roc_auc_cv']:.4f}")
 
-    best_name = max(comparison, key=lambda k: comparison[k]["roc_auc_cv"])
+    # O modelo mais simples (o primeiro da lista) só é trocado por um mais complexo
+    # se o ganho de ROC-AUC na validação cruzada passar de MIN_AUC_GAIN.
+    names = list(comparison)
+    best_name = names[0]
+    for name in names[1:]:
+        if comparison[name]["roc_auc_cv"] > comparison[best_name]["roc_auc_cv"] + MIN_AUC_GAIN:
+            best_name = name
     # O limiar é escolhido nas previsões fora da amostra do treino, nunca no teste.
-    threshold, _ = best_threshold(y_train, oof[best_name], X_train["valor_mensal"].to_numpy())
+    threshold, _ = best_threshold(y_train, oof[best_name], X_train["MonthlyCharges"].to_numpy())
 
     model = clone(candidate_models(seed)[best_name]).fit(X_train, y_train)
     proba_test = model.predict_proba(X_test)[:, 1]
     pred_test = (proba_test >= threshold).astype(int)
-    monthly_test = X_test["valor_mensal"].to_numpy()
+    monthly_test = X_test["MonthlyCharges"].to_numpy()
 
     importance = permutation_importance(
         model, X_test, y_test, scoring="roc_auc", n_repeats=5, random_state=seed
@@ -73,7 +87,8 @@ def train(n: int = 10_000, seed: int = 42, out_dir: Path = ROOT) -> dict:
     metrics = {
         "versao_modelo": __version__,
         "treinado_em": datetime.now(UTC).isoformat(timespec="seconds"),
-        "n_clientes": n,
+        "dataset": "IBM Telco Customer Churn",
+        "n_clientes": int(len(df)),
         "taxa_churn": round(float(y.mean()), 4),
         "comparacao_cv": comparison,
         "modelo_escolhido": best_name,
@@ -134,7 +149,7 @@ def save_figures(
     ax.axvline(threshold, color="#dc2626", linestyle="--",
                label=f"limiar escolhido ({threshold:.2f})")
     ax.set_xlabel("Limiar de probabilidade para oferecer retenção")
-    ax.set_ylabel("Lucro esperado (R$ mil)")
+    ax.set_ylabel("Lucro esperado (US$ mil)")
     ax.set_title("Lucro da campanha de retenção por limiar (conjunto de teste)")
     ax.legend(frameon=False)
     ax.spines[["top", "right"]].set_visible(False)
@@ -142,11 +157,11 @@ def save_figures(
     fig.savefig(folder / "lucro_por_limiar.png", dpi=150)
     plt.close(fig)
 
-    imp = importance.sort_values()
+    imp = importance.head(10).sort_values()
     fig, ax = plt.subplots(figsize=(7, 4))
     ax.barh(imp.index, imp.values, color="#2563eb")
     ax.set_xlabel("Queda média no ROC-AUC ao embaralhar a variável")
-    ax.set_title("Importância das variáveis (permutação)")
+    ax.set_title("10 variáveis mais importantes (permutação, conjunto de teste)")
     ax.spines[["top", "right"]].set_visible(False)
     fig.tight_layout()
     fig.savefig(folder / "importancia_variaveis.png", dpi=150)
@@ -155,10 +170,10 @@ def save_figures(
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--n", type=int, default=10_000, help="número de clientes")
+    parser.add_argument("--data", default=None, help="CSV no formato IBM Telco")
     parser.add_argument("--seed", type=int, default=42)
     args = parser.parse_args()
-    train(n=args.n, seed=args.seed)
+    train(data_path=args.data, seed=args.seed)
 
 
 if __name__ == "__main__":

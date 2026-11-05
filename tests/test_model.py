@@ -5,7 +5,7 @@ from churn.model import best_threshold, expected_profit, risk_band
 
 def test_training_beats_random_and_saves_artifacts(trained_dir):
     out, metrics = trained_dir
-    assert metrics["teste"]["roc_auc"] > 0.75
+    assert metrics["teste"]["roc_auc"] > 0.80  # literatura do dataset: ~0,84
     assert (out / "models" / "model.joblib").exists()
     assert (out / "reports" / "metrics.json").exists()
     assert (out / "reports" / "figures" / "lucro_por_limiar.png").exists()

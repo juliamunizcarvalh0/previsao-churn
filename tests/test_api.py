@@ -2,30 +2,41 @@ import pytest
 from fastapi.testclient import TestClient
 
 CLIENTE_RISCO = {
-    "idade": 29,
-    "tempo_cliente_meses": 2,
-    "valor_mensal": 189.9,
-    "chamados_suporte_90d": 5,
-    "atrasos_pagamento_12m": 3,
-    "tipo_contrato": "mensal",
-    "forma_pagamento": "boleto",
-    "internet": "fibra",
-    "regiao": "sudeste",
-    "tem_streaming": True,
-    "tem_fidelidade_movel": False,
+    "gender": "Female",
+    "SeniorCitizen": 0,
+    "Partner": "No",
+    "Dependents": "No",
+    "tenure": 2,
+    "PhoneService": "Yes",
+    "MultipleLines": "No",
+    "InternetService": "Fiber optic",
+    "OnlineSecurity": "No",
+    "OnlineBackup": "No",
+    "DeviceProtection": "No",
+    "TechSupport": "No",
+    "StreamingTV": "Yes",
+    "StreamingMovies": "Yes",
+    "Contract": "Month-to-month",
+    "PaperlessBilling": "Yes",
+    "PaymentMethod": "Electronic check",
+    "MonthlyCharges": 95.5,
+    "TotalCharges": 191.0,
 }
 CLIENTE_FIEL = {
     **CLIENTE_RISCO,
-    "idade": 55,
-    "tempo_cliente_meses": 60,
-    "valor_mensal": 79.9,
-    "chamados_suporte_90d": 0,
-    "atrasos_pagamento_12m": 0,
-    "tipo_contrato": "bianual",
-    "forma_pagamento": "debito_automatico",
-    "internet": "dsl",
-    "tem_streaming": False,
-    "tem_fidelidade_movel": True,
+    "Partner": "Yes",
+    "Dependents": "Yes",
+    "tenure": 60,
+    "InternetService": "DSL",
+    "OnlineSecurity": "Yes",
+    "TechSupport": "Yes",
+    "StreamingTV": "No",
+    "StreamingMovies": "No",
+    "Contract": "Two year",
+    "PaperlessBilling": "No",
+    "PaymentMethod": "Bank transfer (automatic)",
+    "MonthlyCharges": 55.0,
+    "TotalCharges": 3300.0,
 }
 
 
@@ -61,7 +72,7 @@ def test_batch(client):
 
 
 def test_invalid_input_returns_422(client):
-    resp = client.post("/predict", json={**CLIENTE_RISCO, "tipo_contrato": "semanal"})
+    resp = client.post("/predict", json={**CLIENTE_RISCO, "Contract": "Weekly"})
     assert resp.status_code == 422
 
 
